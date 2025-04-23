@@ -11,7 +11,7 @@ export default function VideoPlayer({ streamUrl }: { streamUrl: string }) {
       ref={videoRef}
       // controls
       autoPlay
-      className="w-full absolute top-0 left-0 h-full object-cover z-0 bg-gray-900
+      className="w-full absolute top-0 left-0 h-full object-cover z-0
       md:max-w-4xl md:aspect-video md:rounded-xl md:shadow-lg md:relative 
       md:static md:h-auto md:object-contain"
     />

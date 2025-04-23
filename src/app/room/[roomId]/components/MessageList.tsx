@@ -5,7 +5,7 @@ export default function MessageList({ messages }: { messages: string[] }) {
       {messages.map((msg, i) => (
         <div
           key={i}
-          className="bg-white/90 md:bg-transparent md:text-white text-xs md:text-sm rounded-md px-3 py-1 w-fit max-w-full"
+          className="bg-chat-bubble-mobile md:bg-chat-bubble-desktop text-foreground-dark md:text-foreground text-xs md:text-sm rounded-md px-3 py-1 w-fit max-w-full"
         >
           {msg}
         </div>

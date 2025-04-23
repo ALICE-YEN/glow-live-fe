@@ -1,13 +1,36 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: oklch(21% 0.034 264.665); /* gray-900 */
+  --foreground: #ffffff;
+  --foreground-dark: #111111;
+  --chat-bg-desktop: oklch(27.8% 0.033 256.848); /* gray-800 */
+  --chat-bubble-mobile: rgba(255, 255, 255, 0.9);
+  --chat-bubble-desktop: transparent;
+  --chat-input-bg-desktop: rgba(255, 255, 255, 0.1); /* 淡透明輸入框 */
+  --chat-input-bg-mobile: rgba(255, 255, 255, 0.7); /* 淡透明輸入框 */
+  --chat-placeholder: #aaaaaa;
+  --chat-button: #1e40af; /* blue-800 */
+  --chat-button-hover: #1d4ed8; /* blue-700 */
+  --chat-button-active: #1d4ed8; /* blue-700 */
+  --chat-button-disabled: #9ca3af; /* gray-400 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-dark: var(--foreground-dark);
+  --color-chat-bg-desktop: var(--chat-bg-desktop);
+  --color-chat-bubble-mobile: var(--chat-bubble-mobile);
+  --color-chat-bubble-desktop: var(--chat-bubble-desktop);
+  --color-chat-input-bg-desktop: var(--chat-input-bg-desktop);
+  --color-chat-input-bg-mobile: var(--chat-input-bg-mobile);
+  --color-chat-placeholder: var(--chat-placeholder);
+  --color-chat-button: var(--chat-button);
+  --color-chat-button-hover: var(--chat-button-hover);
+  --color-chat-button-active: var(--chat-button-active);
+  --color-chat-button-disabled: var(--chat-button-disabled);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
