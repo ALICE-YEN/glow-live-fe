@@ -9,9 +9,11 @@ export default function VideoPlayer({ streamUrl }: { streamUrl: string }) {
   return (
     <video
       ref={videoRef}
-      controls
+      // controls
       autoPlay
-      className="w-full max-w-4xl aspect-video rounded-xl shadow-lg bg-gray-900"
+      className="w-full absolute top-0 left-0 h-full object-cover z-0 bg-gray-900
+      md:max-w-4xl md:aspect-video md:rounded-xl md:shadow-lg md:relative 
+      md:static md:h-auto md:object-contain"
     />
   );
 }
