@@ -15,3 +15,10 @@ export interface StreamDetail {
   created_at: string;
   updated_at: string;
 }
+
+export interface GiftDetail {
+  id: number;
+  name: string;
+  emoji: string;
+  price: number;
+}

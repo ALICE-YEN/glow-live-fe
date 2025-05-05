@@ -1,10 +1,12 @@
 "use client";
 import { useState, useEffect, use } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
 import useIsMobile from "@/hooks/useIsMobile";
 import useSocket from "@/hooks/useSocket";
+import { getGifts } from "@/services/api";
 import { DisplayMessageType } from "@/types/enum";
 import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
 import MessageList from "@/app/streams/[streamId]/components/MessageList";
@@ -21,6 +23,15 @@ export default function Stream({
 
   const isMobile = useIsMobile();
   const socketRef = useSocket();
+
+  const {
+    data: gifts,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["gifts"],
+    queryFn: getGifts,
+  });
 
   useEffect(() => {
     if (!streamId) return;
@@ -90,6 +101,9 @@ export default function Stream({
     },
   ];
 
+  if (isLoading) return <div>載入中...</div>;
+  if (error) return <div>發生錯誤：{(error as Error).message}</div>;
+
   return (
     <div className="flex flex-col md:flex-row w-full min-h-[100svh] md:h-screen relative">
       {/* 左側 - 直播影片 */}
@@ -130,7 +144,7 @@ export default function Stream({
                 <MessageList messages={dummyMessages} />
               </div>
               <ChatInput />
-              <EmojiPanel />
+              <EmojiPanel gifts={gifts} />
             </div>
           </motion.div>
         )}
@@ -142,7 +156,7 @@ export default function Stream({
             <MessageList messages={dummyMessages} />
           </div>
           <ChatInput />
-          <EmojiPanel />
+          <EmojiPanel gifts={gifts} />
         </div>
       )}
 

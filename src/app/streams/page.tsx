@@ -1,16 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { getLiveStreams } from "@/services/api";
 import { StreamDetail } from "@/types/interfaces";
 import Card from "./components/Card";
-
-const getLiveStreams = async () => {
-  const { data } = await axios.get(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/streams`
-  );
-  return data;
-};
 
 export default function Streams() {
   const {
@@ -24,7 +17,7 @@ export default function Streams() {
 
   return (
     <div className="min-h-screen">
-      <main className="pt-28 sm:pt-40 mx-auto px-10 sm:px-14 lg:px-20">
+      <main className="mx-auto p-10 sm:p-14 lg:p-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {streams.map((stream: StreamDetail) => (
             <Card
