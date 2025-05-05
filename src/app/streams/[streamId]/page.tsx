@@ -6,30 +6,30 @@ import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
 import useIsMobile from "@/hooks/useIsMobile";
 import useSocket from "@/hooks/useSocket";
 import { DisplayMessageType } from "@/types/enum";
-import VideoPlayer from "@/app/room/[roomId]/components/VideoPlayer";
-import MessageList from "@/app/room/[roomId]/components/MessageList";
-import ChatInput from "@/app/room/[roomId]/components/ChatInput";
-import EmojiPanel from "@/app/room/[roomId]/components/EmojiPanel";
+import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
+import MessageList from "@/app/streams/[streamId]/components/MessageList";
+import ChatInput from "@/app/streams/[streamId]/components/ChatInput";
+import EmojiPanel from "@/app/streams/[streamId]/components/EmojiPanel";
 
 export default function Room({
   params,
 }: {
-  params: Promise<{ roomId: string }>;
+  params: Promise<{ streamId: string }>;
 }) {
-  const { roomId } = use(params);
+  const { streamId } = use(params);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
   const isMobile = useIsMobile();
   const socketRef = useSocket();
 
   useEffect(() => {
-    if (!roomId) return;
+    if (!streamId) return;
     if (!socketRef.current) return;
 
     const socket = socketRef.current;
     // 發送 joinRoom 事件給後端
     socket.emit("joinRoom", {
-      streamId: Number(roomId),
+      streamId: Number(streamId),
       userId: 1,
       userName: "streamer01",
     });
@@ -37,9 +37,9 @@ export default function Room({
     return () => {
       // TODO: leaveRoom 判斷要更精準完整
       // 通知後端使用者離開房間，釋放資源，更新在線人數等
-      socket.emit("leaveRoom", { streamId: Number(roomId) });
+      socket.emit("leaveRoom", { streamId: Number(streamId) });
     };
-  }, [roomId, socketRef]);
+  }, [streamId, socketRef]);
 
   const dummyMessages = [
     {
@@ -98,7 +98,7 @@ export default function Room({
         ${!isMobile && isSidePanelOpen ? "md:w-2/3" : "md:w-full"}`}
       >
         <VideoPlayer
-          streamUrl={`http://localhost:8000/live/${roomId}/index.m3u8`}
+          streamUrl={`http://localhost:8000/live/${streamId}/index.m3u8`}
           // streamUrl="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
         />
       </div>
