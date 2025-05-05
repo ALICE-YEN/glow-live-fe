@@ -11,7 +11,7 @@ import MessageList from "@/app/streams/[streamId]/components/MessageList";
 import ChatInput from "@/app/streams/[streamId]/components/ChatInput";
 import EmojiPanel from "@/app/streams/[streamId]/components/EmojiPanel";
 
-export default function Room({
+export default function Stream({
   params,
 }: {
   params: Promise<{ streamId: string }>;
@@ -91,7 +91,7 @@ export default function Room({
   ];
 
   return (
-    <div className="flex flex-col md:flex-row w-full min-h-[100svh] md:h-screen bg-background relative">
+    <div className="flex flex-col md:flex-row w-full min-h-[100svh] md:h-screen relative">
       {/* 左側 - 直播影片 */}
       <div
         className={`flex justify-center items-center p-4 w-full flex-grow transition-all duration-300

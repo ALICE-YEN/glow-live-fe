@@ -1,4 +1,4 @@
-export default function StreamLayout({
+export default function StreamsLayout({
   children,
 }: {
   children: React.ReactNode;
