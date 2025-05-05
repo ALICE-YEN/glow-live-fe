@@ -1,9 +1,11 @@
 "use client";
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
 import useIsMobile from "@/hooks/useIsMobile";
+import useSocket from "@/hooks/useSocket";
+import { DisplayMessageType } from "@/types/enum";
 import VideoPlayer from "@/app/room/[roomId]/components/VideoPlayer";
 import MessageList from "@/app/room/[roomId]/components/MessageList";
 import ChatInput from "@/app/room/[roomId]/components/ChatInput";
@@ -18,16 +20,74 @@ export default function Room({
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
   const isMobile = useIsMobile();
+  const socketRef = useSocket();
+
+  useEffect(() => {
+    if (!roomId) return;
+    if (!socketRef.current) return;
+
+    const socket = socketRef.current;
+    // 發送 joinRoom 事件給後端
+    socket.emit("joinRoom", {
+      streamId: Number(roomId),
+      userId: 1,
+      userName: "streamer01",
+    });
+
+    return () => {
+      // TODO: leaveRoom 判斷要更精準完整
+      // 通知後端使用者離開房間，釋放資源，更新在線人數等
+      socket.emit("leaveRoom", { streamId: Number(roomId) });
+    };
+  }, [roomId, socketRef]);
 
   const dummyMessages = [
-    "觀眾 A：這主播不錯耶",
-    "觀眾 B：+1",
-    "觀眾 C：我送了一個 🎁",
-    "觀眾 D：🔥",
-    "觀眾 A：這主播不錯耶",
-    "觀眾 B：+1",
-    "觀眾 C：我送了一個 🎁",
-    "觀眾 D：🔥",
+    {
+      id: 1,
+      displayType: DisplayMessageType.User,
+      userName: "觀眾 A",
+      message: "這主播不錯耶",
+    },
+    {
+      id: 2,
+      displayType: DisplayMessageType.User,
+      userName: "觀眾 B",
+      message: "+1",
+    },
+    {
+      id: 3,
+      displayType: DisplayMessageType.User,
+      userName: "觀眾 C",
+      message: "我送了一個 🎁",
+    },
+    {
+      id: 4,
+      displayType: DisplayMessageType.User,
+      userName: "觀眾 D",
+      message: "🔥",
+    },
+    {
+      id: 5,
+      displayType: DisplayMessageType.System,
+      message: "你已加入聊天室",
+    },
+    {
+      id: 6,
+      displayType: DisplayMessageType.User,
+      userName: "觀眾 A",
+      message: "這主播不錯耶",
+    },
+    {
+      id: 7,
+      displayType: DisplayMessageType.User,
+      userName: "觀眾 B",
+      message: "+1",
+    },
+    {
+      id: 8,
+      displayType: DisplayMessageType.System,
+      message: "觀眾 C 加入了聊天室",
+    },
   ];
 
   return (
@@ -38,8 +98,8 @@ export default function Room({
         ${!isMobile && isSidePanelOpen ? "md:w-2/3" : "md:w-full"}`}
       >
         <VideoPlayer
-          // streamUrl={`http://localhost:8000/live/${roomId}/index.m3u8`}
-          streamUrl="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+          streamUrl={`http://localhost:8000/live/${roomId}/index.m3u8`}
+          // streamUrl="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
         />
       </div>
 
