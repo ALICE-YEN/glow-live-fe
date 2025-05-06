@@ -7,10 +7,10 @@ import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
 import useIsMobile from "@/hooks/useIsMobile";
 import useSocket from "@/hooks/useSocket";
-import { getGifts, sendGift } from "@/services/api";
-import type { SendGiftBody } from "@/types/api";
-import { DisplayMessageType } from "@/types/enum";
+import { getChats, createChat, getGifts, sendGift } from "@/services/api";
+import type { CreateChatBody, SendGiftBody } from "@/types/api";
 import type { GiftDetail } from "@/types/interfaces";
+import { DisplayMessageType, ChatMessageType } from "@/types/enum";
 import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
 import MessageList from "@/app/streams/[streamId]/components/MessageList";
 import ChatInput from "@/app/streams/[streamId]/components/ChatInput";
@@ -28,6 +28,15 @@ export default function Stream({
   const socketRef = useSocket();
 
   const {
+    data: chats,
+    isLoading: chatsLoading,
+    error: chatsError,
+  } = useQuery({
+    queryKey: ["chats", streamId],
+    queryFn: () => getChats(streamId),
+  });
+
+  const {
     data: gifts,
     isLoading,
     error,
@@ -37,6 +46,20 @@ export default function Stream({
   });
 
   const queryClient = useQueryClient();
+
+  const createChatMutation = useMutation({
+    mutationFn: (body: CreateChatBody) => {
+      return createChat(streamId, body);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["chats", streamId]);
+      toast.success("建立聊天記錄成功！");
+    },
+    onError: (error) => {
+      console.error("建立聊天記錄失敗：", error);
+      toast.error("建立聊天記錄失敗，請稍後重試");
+    },
+  });
 
   const sendGiftMutation = useMutation({
     mutationFn: (gift: GiftDetail) => {
@@ -81,54 +104,9 @@ export default function Stream({
     };
   }, [streamId, socketRef]);
 
-  const dummyMessages = [
-    {
-      id: 1,
-      displayType: DisplayMessageType.User,
-      userName: "觀眾 A",
-      message: "這主播不錯耶",
-    },
-    {
-      id: 2,
-      displayType: DisplayMessageType.User,
-      userName: "觀眾 B",
-      message: "+1",
-    },
-    {
-      id: 3,
-      displayType: DisplayMessageType.User,
-      userName: "觀眾 C",
-      message: "我送了一個 🎁",
-    },
-    {
-      id: 4,
-      displayType: DisplayMessageType.User,
-      userName: "觀眾 D",
-      message: "🔥",
-    },
-    {
-      id: 5,
-      displayType: DisplayMessageType.System,
-      message: "你已加入聊天室",
-    },
-    {
-      id: 6,
-      displayType: DisplayMessageType.User,
-      userName: "觀眾 A",
-      message: "這主播不錯耶",
-    },
-    {
-      id: 7,
-      displayType: DisplayMessageType.User,
-      userName: "觀眾 B",
-      message: "+1",
-    },
-    {
-      id: 8,
-      displayType: DisplayMessageType.System,
-      message: "觀眾 C 加入了聊天室",
-    },
-  ];
+  const handleSendMessage = (message: string) => {
+    createChatMutation.mutate({ content: message, type: ChatMessageType.Text }); // ChatInput 目前只支援文字訊息
+  };
 
   const handleSendGift = (gift: GiftDetail) => {
     sendGiftMutation.mutate(gift);
@@ -174,9 +152,9 @@ export default function Stream({
 
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto pr-1">
-                <MessageList messages={dummyMessages} />
+                <MessageList messages={chats} />
               </div>
-              <ChatInput />
+              <ChatInput onSendMessage={handleSendMessage} />
               <EmojiPanel gifts={gifts} onSendGift={handleSendGift} />
             </div>
           </motion.div>
@@ -186,10 +164,10 @@ export default function Stream({
       {isMobile && (
         <div className="absolute bottom-0 w-full h-[30vh] z-10 flex flex-col">
           <div className="flex-1 overflow-y-auto px-4 pt-2">
-            <MessageList messages={dummyMessages} />
+            <MessageList messages={chats} />
           </div>
-          <ChatInput />
-          <EmojiPanel gifts={gifts} />
+          <ChatInput onSendMessage={handleSendMessage} />
+          <EmojiPanel gifts={gifts} onSendGift={handleSendGift} />
         </div>
       )}
 

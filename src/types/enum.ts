@@ -8,3 +8,9 @@ export enum DisplayMessageType {
   User = "user",
   System = "system",
 }
+
+export enum ChatMessageType {
+  Text = "text",
+  Emoji = "emoji",
+  Gift = "gift",
+}

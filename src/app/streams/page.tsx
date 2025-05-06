@@ -28,7 +28,7 @@ export default function Streams() {
               title={stream.title}
               src={`${process.env.NEXT_PUBLIC_URL}/stream-default.jpg`}
               // src={
-              //   stream.thumbnail_url ||
+              //   stream.thumbnailUrl ||
               //   `${process.env.NEXT_PUBLIC_BACKEND_URL}/stream-default.jpg`
               // }
             />

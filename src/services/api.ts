@@ -1,5 +1,9 @@
 import axios from "axios";
-import type { CreateStreamBody, SendGiftBody } from "@/types/api";
+import type {
+  CreateStreamBody,
+  CreateChatBody,
+  SendGiftBody,
+} from "@/types/api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -9,7 +13,20 @@ export const createStream = async (body: CreateStreamBody) => {
 };
 
 export const getLiveStreams = async () => {
-  const { data } = await axios.get(`${BASE_URL}/streams?status=live`);
+  const { data } = await axios.get(`${BASE_URL}/streams`);
+  return data;
+};
+
+export const createChat = async (streamId: number, body: CreateChatBody) => {
+  const { data } = await axios.post(
+    `${BASE_URL}/streams/${streamId}/chats`,
+    body
+  );
+  return data;
+};
+
+export const getChats = async (streamId: number) => {
+  const { data } = await axios.get(`${BASE_URL}/streams/${streamId}/chats`);
   return data;
 };
 
