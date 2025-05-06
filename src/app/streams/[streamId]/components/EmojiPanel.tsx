@@ -4,7 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { throttle } from "lodash";
 import { GiftDetail } from "@/types/interfaces";
 
-export default function EmojiPanel({ gifts }: { gifts: GiftDetail[] }) {
+interface EmojiPanelProps {
+  gifts: GiftDetail[];
+  onSendGift: (gift: GiftDetail) => void;
+}
+
+export default function EmojiPanel({ gifts, onSendGift }: EmojiPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const [floatingEmojis, setFloatingEmojis] = useState<
@@ -44,7 +49,7 @@ export default function EmojiPanel({ gifts }: { gifts: GiftDetail[] }) {
   const throttledSendGift = useMemo(() => {
     return throttle((gift: GiftDetail) => {
       console.log(`🎁 Sending gift: ${gift.emoji}`);
-      // fetch('/api/send-gift', { method: 'POST', body: JSON.stringify({ emoji }) })
+      onSendGift(gift);
     }, 1000);
   }, []); // 每秒最多執行一次
 

@@ -1,13 +1,16 @@
 "use client";
 import { useState, useEffect, use } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
 import useIsMobile from "@/hooks/useIsMobile";
 import useSocket from "@/hooks/useSocket";
-import { getGifts } from "@/services/api";
+import { getGifts, sendGift } from "@/services/api";
+import type { SendGiftBody } from "@/types/api";
 import { DisplayMessageType } from "@/types/enum";
+import type { GiftDetail } from "@/types/interfaces";
 import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
 import MessageList from "@/app/streams/[streamId]/components/MessageList";
 import ChatInput from "@/app/streams/[streamId]/components/ChatInput";
@@ -16,7 +19,7 @@ import EmojiPanel from "@/app/streams/[streamId]/components/EmojiPanel";
 export default function Stream({
   params,
 }: {
-  params: Promise<{ streamId: string }>;
+  params: Promise<{ streamId: number }>;
 }) {
   const { streamId } = use(params);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
@@ -31,6 +34,32 @@ export default function Stream({
   } = useQuery({
     queryKey: ["gifts"],
     queryFn: getGifts,
+  });
+
+  const queryClient = useQueryClient();
+
+  const sendGiftMutation = useMutation({
+    mutationFn: (gift: GiftDetail) => {
+      const body: SendGiftBody = {
+        senderId: 1,
+        giftId: gift.id,
+        price: gift.price,
+        amount: 1, // 目前只支援一次贈送一個
+      };
+      return sendGift(streamId, body);
+    },
+    onSuccess: (_data, variables) => {
+      // queryClient.invalidateQueries(["design", designId]);
+      const { emoji, price } = variables;
+      const amount = 1; // 目前只支援一次贈送一個
+      toast.success(
+        `成功贈送 ${amount} 個 ${emoji}（共 ${amount * price} 金幣）`
+      );
+    },
+    onError: (error) => {
+      console.error("更新失敗：", error);
+      toast.error("贈送禮物成功失敗，請稍後重試");
+    },
   });
 
   useEffect(() => {
@@ -101,6 +130,10 @@ export default function Stream({
     },
   ];
 
+  const handleSendGift = (gift: GiftDetail) => {
+    sendGiftMutation.mutate(gift);
+  };
+
   if (isLoading) return <div>載入中...</div>;
   if (error) return <div>發生錯誤：{(error as Error).message}</div>;
 
@@ -144,7 +177,7 @@ export default function Stream({
                 <MessageList messages={dummyMessages} />
               </div>
               <ChatInput />
-              <EmojiPanel gifts={gifts} />
+              <EmojiPanel gifts={gifts} onSendGift={handleSendGift} />
             </div>
           </motion.div>
         )}
