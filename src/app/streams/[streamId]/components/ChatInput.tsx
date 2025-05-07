@@ -50,7 +50,7 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
       />
       <button
         onClick={handleSend}
-        className="px-4 py-2 bg-chat-button rounded-md text-sm hover:bg-chat-button-hover active:bg-chat-button-active"
+        className="px-4 py-2 bg-chat-button rounded-md text-sm hover:bg-chat-button-hover hover:scale-105 transition-transform active:bg-chat-button-active cursor-pointer"
       >
         送出
       </button>

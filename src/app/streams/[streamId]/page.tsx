@@ -15,6 +15,8 @@ import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
 import MessageList from "@/app/streams/[streamId]/components/MessageList";
 import ChatInput from "@/app/streams/[streamId]/components/ChatInput";
 import EmojiPanel from "@/app/streams/[streamId]/components/EmojiPanel";
+import StreamInfoBar from "@/app/streams/[streamId]/components/StreamInfoBar";
+import CloseButton from "@/app/streams/[streamId]/components/CloseButton";
 
 export default function Stream({
   params,
@@ -112,19 +114,31 @@ export default function Stream({
     sendGiftMutation.mutate(gift);
   };
 
+  const handleFollow = () => {
+    console.log("Follow button clicked");
+  };
+
   if (isLoading) return <div>載入中...</div>;
   if (error) return <div>發生錯誤：{(error as Error).message}</div>;
 
   return (
     <div className="flex flex-col md:flex-row w-full min-h-[100svh] md:h-screen relative">
+      <StreamInfoBar
+        username="Alice"
+        isFollowing={false}
+        onFollow={handleFollow}
+      />
+
+      {isMobile && <CloseButton />}
+
       {/* 左側 - 直播影片 */}
       <div
         className={`flex justify-center items-center p-4 w-full flex-grow transition-all duration-300
         ${!isMobile && isSidePanelOpen ? "md:w-2/3" : "md:w-full"}`}
       >
         <VideoPlayer
-          streamUrl={`http://localhost:8000/live/${streamId}/index.m3u8`}
-          // streamUrl="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+          // streamUrl={`http://localhost:8000/live/${streamId}/index.m3u8`}
+          streamUrl="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
         />
       </div>
 
@@ -146,7 +160,7 @@ export default function Stream({
                 onClick={() => setIsSidePanelOpen(false)}
                 className="text-gray-300 hover:text-white cursor-pointer"
               >
-                <XIcon className="w-6 h-6" />
+                <XIcon className="w-6 h-6 hover:scale-110 transition-transform" />
               </button>
             </div>
 
