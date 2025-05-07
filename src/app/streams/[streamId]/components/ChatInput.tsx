@@ -17,7 +17,7 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
   const handleSend = async () => {
     const trimmed = message.trim();
     if (!trimmed) {
-      toast.error("訊息不可為空");
+      // toast.error("訊息不可為空");
       return;
     }
     if (trimmed.length > CHAT_MAX_LENGTH) {

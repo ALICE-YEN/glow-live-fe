@@ -150,8 +150,11 @@ export default function Stream({
     };
   }, [streamId, socketRef]);
 
-  const handleSendMessage = (message: string) => {
-    createChatMutation.mutate({ content: message, type: ChatMessageType.Text }); // ChatInput 目前只支援文字訊息
+  const handleSendMessage = async (message: string) => {
+    await createChatMutation.mutateAsync({
+      content: message,
+      type: ChatMessageType.Text,
+    }); // ChatInput 目前只支援文字訊息
   };
 
   const handleSendGift = (gift: GiftDetail) => {
@@ -168,7 +171,7 @@ export default function Stream({
   return (
     <div className="flex flex-col md:flex-row w-full min-h-[100svh] md:h-screen relative">
       <StreamInfoBar
-        username="Alice"
+        username={stream?.username}
         isFollowing={stream?.isFollowedByCurrentUser}
         onFollow={handleFollow}
       />

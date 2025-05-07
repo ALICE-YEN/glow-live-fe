@@ -19,5 +19,6 @@ export interface SendGiftBody {
   amount: number;
 }
 export interface GetStreamResponse extends StreamDetail {
+  username: string;
   isFollowedByCurrentUser: boolean;
 }
