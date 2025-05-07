@@ -7,8 +7,19 @@ import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
 import useIsMobile from "@/hooks/useIsMobile";
 import useSocket from "@/hooks/useSocket";
-import { getChats, createChat, getGifts, sendGift } from "@/services/api";
-import type { CreateChatBody, SendGiftBody } from "@/types/api";
+import {
+  getChats,
+  createChat,
+  getGifts,
+  sendGift,
+  followUser,
+  getStream,
+} from "@/services/api";
+import type {
+  CreateChatBody,
+  SendGiftBody,
+  GetStreamResponse,
+} from "@/types/api";
 import type { GiftDetail } from "@/types/interfaces";
 import { DisplayMessageType, ChatMessageType } from "@/types/enum";
 import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
@@ -31,11 +42,12 @@ export default function Stream({
 
   const {
     data: chats,
-    isLoading: chatsLoading,
-    error: chatsError,
+    // isLoading: chatsLoading,
+    // error: chatsError,
   } = useQuery({
     queryKey: ["chats", streamId],
     queryFn: () => getChats(streamId),
+    refetchOnWindowFocus: false, // 使用 WebSocket 來即時更新聊天訊息
   });
 
   const {
@@ -45,6 +57,18 @@ export default function Stream({
   } = useQuery({
     queryKey: ["gifts"],
     queryFn: getGifts,
+    refetchOnWindowFocus: false,
+  });
+
+  const {
+    data: stream,
+    // isLoading: streamLoading,
+    // error: streamError,
+    refetch: refetchStream,
+  } = useQuery({
+    queryKey: ["stream", streamId],
+    queryFn: () => getStream(streamId),
+    refetchOnWindowFocus: false, // 使用 WebSocket 來即時更新直播狀態
   });
 
   const queryClient = useQueryClient();
@@ -87,6 +111,26 @@ export default function Stream({
     },
   });
 
+  const followUserMutation = useMutation({
+    mutationFn: () => followUser(stream.userId),
+    onSuccess: () => {
+      // queryClient.invalidateQueries(["stream", streamId]);
+      queryClient.setQueryData(
+        ["stream", streamId],
+        (prev: GetStreamResponse) => ({
+          ...prev,
+          isFollowedByCurrentUser: true,
+        })
+      );
+
+      toast.success("追蹤直播主成功！");
+    },
+    onError: (error) => {
+      console.error("追蹤直播主失敗：", error);
+      toast.error("追蹤直播主失敗，請稍後重試");
+    },
+  });
+
   useEffect(() => {
     if (!streamId) return;
     if (!socketRef.current) return;
@@ -115,7 +159,7 @@ export default function Stream({
   };
 
   const handleFollow = () => {
-    console.log("Follow button clicked");
+    followUserMutation.mutate();
   };
 
   if (isLoading) return <div>載入中...</div>;
@@ -125,7 +169,7 @@ export default function Stream({
     <div className="flex flex-col md:flex-row w-full min-h-[100svh] md:h-screen relative">
       <StreamInfoBar
         username="Alice"
-        isFollowing={false}
+        isFollowing={stream?.isFollowedByCurrentUser}
         onFollow={handleFollow}
       />
 

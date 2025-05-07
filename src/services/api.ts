@@ -12,6 +12,11 @@ export const createStream = async (body: CreateStreamBody) => {
   return data;
 };
 
+export const getStream = async (streamId: number) => {
+  const { data } = await axios.get(`${BASE_URL}/streams/${streamId}`);
+  return data;
+};
+
 export const getLiveStreams = async () => {
   const { data } = await axios.get(`${BASE_URL}/streams`);
   return data;
@@ -40,5 +45,10 @@ export const sendGift = async (streamId: number, body: SendGiftBody) => {
     `${BASE_URL}/streams/${streamId}/gifts`,
     body
   );
+  return data;
+};
+
+export const followUser = async (userId: number) => {
+  const { data } = await axios.post(`${BASE_URL}/users/${userId}/follow`);
   return data;
 };

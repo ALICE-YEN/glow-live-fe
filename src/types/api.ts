@@ -1,4 +1,5 @@
 import { ChatMessageType } from "./enum";
+import { StreamDetail } from "./interfaces";
 
 export interface CreateStreamBody {
   title: string;
@@ -16,4 +17,7 @@ export interface SendGiftBody {
   giftId: number;
   price: number;
   amount: number;
+}
+export interface GetStreamResponse extends StreamDetail {
+  isFollowedByCurrentUser: boolean;
 }
