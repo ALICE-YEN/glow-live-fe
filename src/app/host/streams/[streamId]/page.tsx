@@ -1,10 +1,11 @@
 "use client";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
+import useCameraStream from "@/hooks/useCameraStream";
 import useIsMobile from "@/hooks/useIsMobile";
 import { getChats, createChat } from "@/services/api";
 import type { CreateChatBody } from "@/types/api";
@@ -19,8 +20,10 @@ export default function HostStream({
   params: Promise<{ streamId: number }>;
 }) {
   const { streamId } = use(params);
+
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
+  const stream = useCameraStream();
   const isMobile = useIsMobile();
 
   const {
@@ -63,10 +66,11 @@ export default function HostStream({
         className={`flex justify-center items-center p-4 w-full flex-grow transition-all duration-300
         ${!isMobile && isSidePanelOpen ? "md:w-2/3" : "md:w-full"}`}
       >
-        <VideoPlayer
-          // streamUrl={`http://localhost:8000/live/${streamId}/index.m3u8`}
-          streamUrl="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
-        />
+        {stream ? (
+          <VideoPlayer localStream={stream} />
+        ) : (
+          <p className="text-white">攝影機啟動中...</p>
+        )}
       </div>
 
       {/* 右側 - 聊天室 */}
