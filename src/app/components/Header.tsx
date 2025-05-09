@@ -20,7 +20,7 @@ export default function Header() {
     onSuccess: (response) => {
       queryClient.invalidateQueries(["streams"]);
       toast.success("建立直播成功！");
-      router.push(`/streams/${response.id}`);
+      router.push(`/host/streams/${response.id}`);
     },
     onError: (error) => {
       console.error("建立直播失敗：", error);

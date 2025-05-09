@@ -6,30 +6,14 @@ import { toast } from "react-toastify";
 import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
 import useIsMobile from "@/hooks/useIsMobile";
-import useSocket from "@/hooks/useSocket";
-import {
-  getChats,
-  createChat,
-  getGifts,
-  sendGift,
-  followUser,
-  getStream,
-} from "@/services/api";
-import type {
-  CreateChatBody,
-  SendGiftBody,
-  GetStreamResponse,
-} from "@/types/api";
-import type { GiftDetail } from "@/types/interfaces";
+import { getChats, createChat } from "@/services/api";
+import type { CreateChatBody } from "@/types/api";
 import { DisplayMessageType, ChatMessageType } from "@/types/enum";
 import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
 import MessageList from "@/app/streams/[streamId]/components/MessageList";
 import ChatInput from "@/app/streams/[streamId]/components/ChatInput";
-import EmojiPanel from "@/app/streams/[streamId]/components/EmojiPanel";
-import StreamInfoBar from "@/app/streams/[streamId]/components/StreamInfoBar";
-import CloseButton from "@/app/streams/[streamId]/components/CloseButton";
 
-export default function Stream({
+export default function HostStream({
   params,
 }: {
   params: Promise<{ streamId: number }>;
@@ -38,7 +22,6 @@ export default function Stream({
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
   const isMobile = useIsMobile();
-  const socketRef = useSocket();
 
   const {
     data: chats,
@@ -48,27 +31,6 @@ export default function Stream({
     queryKey: ["chats", streamId],
     queryFn: () => getChats(streamId),
     refetchOnWindowFocus: false, // 使用 WebSocket 來即時更新聊天訊息
-  });
-
-  const {
-    data: gifts,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["gifts"],
-    queryFn: getGifts,
-    refetchOnWindowFocus: false,
-  });
-
-  const {
-    data: stream,
-    // isLoading: streamLoading,
-    // error: streamError,
-    refetch: refetchStream,
-  } = useQuery({
-    queryKey: ["stream", streamId],
-    queryFn: () => getStream(streamId),
-    refetchOnWindowFocus: false, // 使用 WebSocket 來即時更新直播狀態
   });
 
   const queryClient = useQueryClient();
@@ -87,69 +49,6 @@ export default function Stream({
     },
   });
 
-  const sendGiftMutation = useMutation({
-    mutationFn: (gift: GiftDetail) => {
-      const body: SendGiftBody = {
-        senderId: 1,
-        giftId: gift.id,
-        price: gift.price,
-        amount: 1, // 目前只支援一次贈送一個
-      };
-      return sendGift(streamId, body);
-    },
-    onSuccess: (_data, variables) => {
-      // queryClient.invalidateQueries(["design", designId]);
-      const { emoji, price } = variables;
-      const amount = 1; // 目前只支援一次贈送一個
-      toast.success(
-        `成功贈送 ${amount} 個 ${emoji}（共 ${amount * price} 金幣）`
-      );
-    },
-    onError: (error) => {
-      console.error("更新失敗：", error);
-      toast.error("贈送禮物成功失敗，請稍後重試");
-    },
-  });
-
-  const followUserMutation = useMutation({
-    mutationFn: () => followUser(stream.userId),
-    onSuccess: () => {
-      // queryClient.invalidateQueries(["stream", streamId]);
-      queryClient.setQueryData(
-        ["stream", streamId],
-        (prev: GetStreamResponse) => ({
-          ...prev,
-          isFollowedByCurrentUser: true,
-        })
-      );
-
-      toast.success("追蹤直播主成功！");
-    },
-    onError: (error) => {
-      console.error("追蹤直播主失敗：", error);
-      toast.error("追蹤直播主失敗，請稍後重試");
-    },
-  });
-
-  useEffect(() => {
-    if (!streamId) return;
-    if (!socketRef.current) return;
-
-    const socket = socketRef.current;
-    // 發送 joinRoom 事件給後端
-    socket.emit("joinRoom", {
-      streamId: Number(streamId),
-      userId: 1,
-      userName: "streamer01",
-    });
-
-    return () => {
-      // TODO: leaveRoom 判斷要更精準完整
-      // 通知後端使用者離開房間，釋放資源，更新在線人數等
-      socket.emit("leaveRoom", { streamId: Number(streamId) });
-    };
-  }, [streamId, socketRef]);
-
   const handleSendMessage = async (message: string) => {
     await createChatMutation.mutateAsync({
       content: message,
@@ -157,27 +56,8 @@ export default function Stream({
     }); // ChatInput 目前只支援文字訊息
   };
 
-  const handleSendGift = (gift: GiftDetail) => {
-    sendGiftMutation.mutate(gift);
-  };
-
-  const handleFollow = () => {
-    followUserMutation.mutate();
-  };
-
-  if (isLoading) return <div>載入中...</div>;
-  if (error) return <div>發生錯誤：{(error as Error).message}</div>;
-
   return (
     <div className="flex flex-col md:flex-row w-full min-h-[100svh] md:h-screen relative">
-      <StreamInfoBar
-        username={stream?.username}
-        isFollowing={stream?.isFollowedByCurrentUser}
-        onFollow={handleFollow}
-      />
-
-      {isMobile && <CloseButton />}
-
       {/* 左側 - 直播影片 */}
       <div
         className={`flex justify-center items-center p-4 w-full flex-grow transition-all duration-300
@@ -216,19 +96,17 @@ export default function Stream({
                 <MessageList messages={chats} />
               </div>
               <ChatInput onSendMessage={handleSendMessage} />
-              <EmojiPanel gifts={gifts} onSendGift={handleSendGift} />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {isMobile && (
-        <div className="absolute bottom-0 w-full h-[30vh] z-10 flex flex-col">
+        <div className="absolute bottom-0 w-full h-[30vh] z-10 flex flex-col pb-2">
           <div className="flex-1 overflow-y-auto px-4">
             <MessageList messages={chats} />
           </div>
           <ChatInput onSendMessage={handleSendMessage} />
-          <EmojiPanel gifts={gifts} onSendGift={handleSendGift} />
         </div>
       )}
 
