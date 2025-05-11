@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
 import useCameraStream from "@/hooks/useCameraStream";
-import useWebRTC from "@/hooks/useWebRTC";
+import useHostWebRTC from "@/hooks/useHostWebRTC";
 import useIsMobile from "@/hooks/useIsMobile";
 import useSocket from "@/hooks/useSocket";
 import { getChats, createChat } from "@/services/api";
@@ -28,7 +28,11 @@ export default function HostStream({
   const isMobile = useIsMobile();
   const socketRef = useSocket();
   const localStream = useCameraStream();
-  const { peerConnection } = useWebRTC(localStream, streamId, socketRef); // 建立一個 WebRTC 連線實體（RTCPeerConnection），並把 localStream 加進去，準備推流給觀眾
+  const { peerConnection } = useHostWebRTC(
+    localStream,
+    Number(streamId),
+    socketRef
+  ); // 建立一個 WebRTC 連線實體（RTCPeerConnection），並把 localStream 加進去，準備推流給觀眾
 
   const {
     data: chats,
@@ -36,7 +40,7 @@ export default function HostStream({
     // error: chatsError,
   } = useQuery({
     queryKey: ["chats", streamId],
-    queryFn: () => getChats(streamId),
+    queryFn: () => getChats(Number(streamId)),
     refetchOnWindowFocus: false, // 使用 WebSocket 來即時更新聊天訊息
   });
 
@@ -44,7 +48,7 @@ export default function HostStream({
 
   const createChatMutation = useMutation({
     mutationFn: (body: CreateChatBody) => {
-      return createChat(streamId, body);
+      return createChat(Number(streamId), body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["chats", streamId]);

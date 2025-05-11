@@ -1,0 +1,35 @@
+@startuml webrtc-signaling-offer-answer
+title WebRTC Signaling Flow via WebSocket with ack()
+
+actor Host
+participant "FE_A\n主播端" as FE_A
+participant "WebSocket\nServer" as WS
+participant "FE_B\n觀眾端" as FE_B
+
+== Phase 1: 主播初始化直播 ==
+Host -> FE_A: 開始直播（getUserMedia）
+FE_A -> FE_A: 建立 RTCPeerConnection
+FE_A -> WS: socket.emit("joinRoom", ..., ack)
+WS -> WS: socket.join(room)
+WS --> FE_A: ack() callback 執行（代表加入成功）
+
+== Phase 2: 主播建立 offer 並送出 ==
+FE_A -> FE_A: createOffer()
+FE_A -> FE_A: setLocalDescription(offer)
+FE_A -> WS: socket.emit("offer", streamId, sdp, type)
+WS -> FE_B: socket.emit("offer", sdp, type)
+
+== Phase 3: 觀眾加入房間 ==
+FE_B -> WS: socket.emit("joinRoom", ..., ack)
+WS -> WS: socket.join(room)
+WS --> FE_B: ack()
+
+== Phase 4: 觀眾處理 offer 並回傳 answer ==
+FE_B -> FE_B: setRemoteDescription(offer)
+FE_B -> FE_B: createAnswer()
+FE_B -> FE_B: setLocalDescription(answer)
+FE_B -> WS: socket.emit("answer", streamId, sdp, type)
+WS -> FE_A: socket.emit("answer", sdp, type)
+FE_A -> FE_A: setRemoteDescription(answer)
+
+@enduml

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Socket } from "socket.io-client";
 
-export default function useWebRTC(
+export default function useHostWebRTC(
   localStream: MediaStream | null,
   streamId: number,
   socketRef: React.MutableRefObject<Socket | null>
@@ -10,6 +10,8 @@ export default function useWebRTC(
 
   useEffect(() => {
     if (!localStream || !socketRef.current) return;
+
+    const socket = socketRef.current;
 
     const pc = new RTCPeerConnection({
       // ICE（Interactive Connectivity Establishment）就像一個「試所有可行通道」的機制，幫助彼此找出一條可以傳資料的路。
@@ -24,6 +26,8 @@ export default function useWebRTC(
       pc.addTrack(track, localStream);
     });
 
+    peerConnectionRef.current = pc;
+
     console.log("📡 WebRTC 連線建立完成，已加入 local tracks");
 
     // 建立 SDP offer
@@ -32,18 +36,27 @@ export default function useWebRTC(
       await pc.setLocalDescription(offer);
 
       // 傳送 offer 到 signaling server
-      socketRef.current?.emit("offer", {
+      socket.emit("offer", {
         streamId,
         sdp: offer.sdp, //  Session Description Protocol，WebRTC 使用它來「描述連線的能力」，內容非常長，描述了音訊編碼、影像格式、候選位址（ICE）等
         type: offer.type, //  "offer" 還是 "answer"
       });
 
-      console.log("📤 offer sent", offer);
+      console.log("📤 Host WebRTC: offer sent");
     };
 
-    startOffer();
-
-    peerConnectionRef.current = pc;
+    socket.emit(
+      "joinRoom",
+      {
+        streamId,
+        userId: 1,
+        userName: "streamer01",
+      },
+      () => {
+        console.log("✅ Host joined room, now sending offer...");
+        startOffer(); // 確保 server 端完成 joinRoom 才開始 offer
+      }
+    );
 
     return () => {
       pc.close();

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import XIcon from "@heroicons/react/24/outline/XMarkIcon";
 import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
+import useViewerWebRTC from "@/hooks/useViewerWebRTC";
 import useIsMobile from "@/hooks/useIsMobile";
 import useSocket from "@/hooks/useSocket";
 import {
@@ -35,10 +36,15 @@ export default function Stream({
   params: Promise<{ streamId: number }>;
 }) {
   const { streamId } = use(params);
+
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
+  const [joined, setJoined] = useState(false);
 
   const isMobile = useIsMobile();
   const socketRef = useSocket();
+
+  // const { remoteStream } = useViewerWebRTC(streamId, socketRef);
+  const { remoteStream } = useViewerWebRTC(joined ? streamId : null, socketRef);
 
   const {
     data: chats,
@@ -137,11 +143,18 @@ export default function Stream({
 
     const socket = socketRef.current;
     // 發送 joinRoom 事件給後端
-    socket.emit("joinRoom", {
-      streamId: Number(streamId),
-      userId: 1,
-      userName: "streamer01",
-    });
+    socket.emit(
+      "joinRoom",
+      {
+        streamId: Number(streamId),
+        userId: 1,
+        userName: "streamer01",
+      },
+      () => {
+        console.log("✅ Viewer joined room");
+        setJoined(true);
+      }
+    );
 
     return () => {
       // TODO: leaveRoom 判斷要更精準完整
@@ -183,10 +196,11 @@ export default function Stream({
         className={`flex justify-center items-center p-4 w-full flex-grow transition-all duration-300
         ${!isMobile && isSidePanelOpen ? "md:w-2/3" : "md:w-full"}`}
       >
-        <VideoPlayer
+        {/* <VideoPlayer
           // streamUrl={`http://localhost:8000/live/${streamId}/index.m3u8`}
           streamUrl="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
-        />
+        /> */}
+        {remoteStream && <VideoPlayer localStream={remoteStream} />}
       </div>
 
       {/* 右側 - 聊天室 */}
