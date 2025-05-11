@@ -1,64 +1,86 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { Socket } from "socket.io-client";
 
 export default function useViewerWebRTC(
   streamId: number | null, // 用來在 signaling 傳遞中辨識是哪一場直播
   socketRef: React.MutableRefObject<Socket | null>
 ) {
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null); // 儲存 WebRTC 連線實例（持久化不隨 render 重建）
-  const remoteStreamRef = useRef<MediaStream | null>(null); // 儲存從主播接收到的影音流（用於傳給 <video srcObject>）
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
   useEffect(() => {
     if (!streamId || !socketRef.current) return;
 
     const socket = socketRef.current;
-    // 建立 WebRTC 連線，使用 Google 的免費 STUN server 幫助穿透 NAT（獲得 public IP）
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
 
-    // 初始化狀態
     peerConnectionRef.current = pc;
-    remoteStreamRef.current = new MediaStream();
+    const newStream = new MediaStream();
+    setRemoteStream(newStream);
 
-    // 收到遠端媒體資料，加入 remoteStream（local MediaStream）
+    // 收到遠端媒體資料，加入 remoteStream
     pc.ontrack = (event) => {
-      console.log("📥 收到遠端媒體 track", event);
-      event.streams[0].getTracks().forEach((track) => {
-        remoteStreamRef.current?.addTrack(track);
-      });
+      // 直接用 event.streams[0]，避免重複 addTrack
+      setRemoteStream(event.streams[0]);
     };
 
-    // 當 socket 收到 SDP offer（來自主播）後建立 answer
-    socket.on("offer", async ({ sdp, type }) => {
-      console.log("📨 收到 offer，準備建立連線");
-      // 設定主播的 offer 為 remote description
-      await pc.setRemoteDescription(new RTCSessionDescription({ sdp, type }));
+    // 收集本地 ICE candidate，傳給 signaling server
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit("ice-candidate", {
+          streamId,
+          candidate: event.candidate,
+        });
+      }
+    };
 
-      // 建立自己的 answer，並設為 local description
+    // 處理來自主播的 ICE candidate
+    const handleRemoteCandidate = ({
+      candidate,
+    }: {
+      candidate: RTCIceCandidateInit;
+    }) => {
+      if (candidate) {
+        pc.addIceCandidate(new RTCIceCandidate(candidate)).catch((e) =>
+          console.error("添加 ICE 候選失敗:", e)
+        );
+      }
+    };
+    socket.on("ice-candidate", handleRemoteCandidate);
+
+    // 當 socket 收到 SDP offer（來自主播）後建立 answer
+    const handleOffer = async ({
+      sdp,
+      type,
+    }: {
+      sdp: string;
+      type: string;
+    }) => {
+      await pc.setRemoteDescription(new RTCSessionDescription({ sdp, type }));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      // 將 answer 傳給主播，完成 WebRTC 雙方握手
       socket.emit("answer", {
         streamId,
         sdp: answer.sdp,
         type: answer.type,
       });
-
-      console.log("📤 answer 已送出");
-    });
+    };
+    socket.on("offer", handleOffer);
 
     return () => {
       pc.close();
       peerConnectionRef.current = null;
-      remoteStreamRef.current = null;
-      socket.off("offer");
+      socket.off("offer", handleOffer);
+      socket.off("ice-candidate", handleRemoteCandidate);
+      setRemoteStream(null);
     };
-  }, [socketRef, streamId]);
+  }, [streamId, socketRef]);
 
   return {
     peerConnection: peerConnectionRef.current,
-    remoteStream: remoteStreamRef.current,
+    remoteStream,
   };
 }

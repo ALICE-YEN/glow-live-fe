@@ -26,9 +26,25 @@ export default function useHostWebRTC(
       pc.addTrack(track, localStream);
     });
 
-    peerConnectionRef.current = pc;
-
     console.log("📡 WebRTC 連線建立完成，已加入 local tracks");
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit("ice-candidate", {
+          streamId,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    // 監聽觀眾傳來的 answer
+    socket.on("answer", async ({ sdp, type }) => {
+      console.log("📨 主播收到 answer，設為 remoteDescription");
+
+      await pc.setRemoteDescription(new RTCSessionDescription({ sdp, type }));
+
+      console.log("✅ 主播完成 setRemoteDescription(answer)");
+    });
 
     // 建立 SDP offer
     const startOffer = async () => {
@@ -58,9 +74,12 @@ export default function useHostWebRTC(
       }
     );
 
+    peerConnectionRef.current = pc;
+
     return () => {
       pc.close();
       peerConnectionRef.current = null;
+      socket.off("answer");
     };
   }, [localStream, socketRef, streamId]);
 

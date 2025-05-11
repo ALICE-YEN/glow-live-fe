@@ -43,8 +43,7 @@ export default function Stream({
   const isMobile = useIsMobile();
   const socketRef = useSocket();
 
-  // const { remoteStream } = useViewerWebRTC(streamId, socketRef);
-  const { remoteStream } = useViewerWebRTC(joined ? streamId : null, socketRef);
+  const { remoteStream } = useViewerWebRTC(streamId, socketRef);
 
   const {
     data: chats,
