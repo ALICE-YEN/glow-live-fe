@@ -13,16 +13,17 @@ FE_A -> WS: socket.emit("joinRoom", ..., ack)
 WS -> WS: socket.join(room)
 WS --> FE_A: ack() callback 執行（代表加入成功）
 
-== Phase 2: 主播建立 offer 並送出 ==
+== Phase 2: 觀眾加入房間 ==
+FE_B -> WS: socket.emit("joinRoom", ..., ack)
+WS -> WS: socket.join(room)
+WS --> FE_B: ack()
+WS -> FE_A: socket.emit("new-viewer")（通知主播發送 offer）
+
+== Phase 3: 主播建立 offer 並送出 ==
 FE_A -> FE_A: createOffer()
 FE_A -> FE_A: setLocalDescription(offer)
 FE_A -> WS: socket.emit("offer", streamId, sdp, type)
 WS -> FE_B: socket.emit("offer", sdp, type)
-
-== Phase 3: 觀眾加入房間 ==
-FE_B -> WS: socket.emit("joinRoom", ..., ack)
-WS -> WS: socket.join(room)
-WS --> FE_B: ack()
 
 == Phase 4: 觀眾處理 offer 並回傳 answer ==
 FE_B -> FE_B: setRemoteDescription(offer)
@@ -31,5 +32,18 @@ FE_B -> FE_B: setLocalDescription(answer)
 FE_B -> WS: socket.emit("answer", streamId, sdp, type)
 WS -> FE_A: socket.emit("answer", sdp, type)
 FE_A -> FE_A: setRemoteDescription(answer)
+
+== Phase 5: 雙方交換 ICE candidate ==
+note over FE_A, FE_B
+ICE candidate 收集與交換是在 offer/answer 過程中或之後持續進行
+end note
+
+FE_A -> WS: socket.emit("ice-candidate", candidate)
+WS -> FE_B: socket.emit("ice-candidate", candidate)
+FE_B -> FE_B: addIceCandidate()
+
+FE_B -> WS: socket.emit("ice-candidate", candidate)
+WS -> FE_A: socket.emit("ice-candidate", candidate)
+FE_A -> FE_A: addIceCandidate()
 
 @enduml

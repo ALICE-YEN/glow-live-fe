@@ -38,7 +38,6 @@ export default function Stream({
   const { streamId } = use(params);
 
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
-  const [joined, setJoined] = useState(false);
 
   const isMobile = useIsMobile();
   const socketRef = useSocket();
@@ -151,7 +150,6 @@ export default function Stream({
       },
       () => {
         console.log("✅ Viewer joined room");
-        setJoined(true);
       }
     );
 
