@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, use } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
@@ -12,9 +13,10 @@ import useSocket from "@/hooks/useSocket";
 import { getChats, createChat } from "@/services/api";
 import type { CreateChatBody } from "@/types/api";
 import { DisplayMessageType, ChatMessageType } from "@/types/enum";
-import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
-import MessageList from "@/app/streams/[streamId]/components/MessageList";
-import ChatInput from "@/app/streams/[streamId]/components/ChatInput";
+import VideoPlayer from "@/app/components/VideoPlayer";
+import MessageList from "@/app/components/MessageList";
+import ChatInput from "@/app/components/ChatInput";
+import CloseButton from "@/app/components/CloseButton";
 
 export default function HostStream({
   params,
@@ -28,11 +30,13 @@ export default function HostStream({
   const isMobile = useIsMobile();
   const socketRef = useSocket();
   const localStream = useCameraStream();
-  const { peerConnection } = useHostWebRTC(
+  const { peerConnection, endStream } = useHostWebRTC(
     localStream,
     Number(streamId),
     socketRef
   ); // 建立一個 WebRTC 連線實體（RTCPeerConnection），並把 localStream 加進去，準備推流給觀眾
+
+  const router = useRouter();
 
   const {
     data: chats,
@@ -67,8 +71,15 @@ export default function HostStream({
     }); // ChatInput 目前只支援文字訊息
   };
 
+  const handleEndStream = () => {
+    endStream(); // 結束 WebRTC 連線
+    router.push("/host/streams");
+  };
+
   return (
     <div className="flex flex-col md:flex-row w-full min-h-[100svh] md:h-screen relative">
+      {isMobile && <CloseButton onClick={handleEndStream} />}
+
       {/* 左側 - 直播影片 */}
       <div
         className={`flex justify-center items-center p-4 w-full flex-grow transition-all duration-300

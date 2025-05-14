@@ -115,7 +115,25 @@ export default function useHostWebRTC(
     };
   }, [localStream, socketRef, streamId]);
 
+  const endStream = () => {
+    const socket = socketRef.current;
+    const pc = peerConnectionRef.current;
+
+    if (pc) {
+      pc.close(); // WebRTC 的 pc.close() 是 idempotent（可重複呼叫）
+      peerConnectionRef.current = null;
+    }
+
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
+
+    socket?.emit("endStream", { streamId });
+    console.log("🛑 主播已結束直播並釋放資源");
+  };
+
   return {
     peerConnection: peerConnectionRef.current,
+    endStream,
   };
 }

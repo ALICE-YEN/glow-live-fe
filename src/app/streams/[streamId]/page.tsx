@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, use } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,12 +24,12 @@ import type {
 } from "@/types/api";
 import type { GiftDetail } from "@/types/interfaces";
 import { DisplayMessageType, ChatMessageType } from "@/types/enum";
-import VideoPlayer from "@/app/streams/[streamId]/components/VideoPlayer";
-import MessageList from "@/app/streams/[streamId]/components/MessageList";
-import ChatInput from "@/app/streams/[streamId]/components/ChatInput";
+import VideoPlayer from "@/app/components/VideoPlayer";
+import MessageList from "@/app/components/MessageList";
+import ChatInput from "@/app/components/ChatInput";
+import CloseButton from "@/app/components/CloseButton";
 import EmojiPanel from "@/app/streams/[streamId]/components/EmojiPanel";
 import StreamInfoBar from "@/app/streams/[streamId]/components/StreamInfoBar";
-import CloseButton from "@/app/streams/[streamId]/components/CloseButton";
 
 export default function Stream({
   params,
@@ -43,6 +44,8 @@ export default function Stream({
   const socketRef = useSocket();
 
   const { remoteStream } = useViewerWebRTC(streamId, socketRef);
+
+  const router = useRouter();
 
   const {
     data: chats,
@@ -149,14 +152,24 @@ export default function Stream({
         userName: "streamer01",
       },
       () => {
+        // 主播端實作了 new-viewer 機制：觀眾加入房間後會觸發主播重新發送 offer
+        // 因此觀眾端不需等待 joinRoom 成功後執行 ack，只要監聽 offer 並回傳 answer 即可
         console.log("✅ Viewer joined room");
       }
     );
+
+    // 觀眾監聽 stream-ended
+    socket.on("stream-ended", () => {
+      console.log("直播已結束");
+      toast.info("直播已結束");
+      router.push("/streams");
+    });
 
     return () => {
       // TODO: leaveRoom 判斷要更精準完整
       // 通知後端使用者離開房間，釋放資源，更新在線人數等
       socket.emit("leaveRoom", { streamId: Number(streamId) });
+      socket.off("stream-ended");
     };
   }, [streamId, socketRef]);
 
@@ -186,7 +199,7 @@ export default function Stream({
         onFollow={handleFollow}
       />
 
-      {isMobile && <CloseButton />}
+      {isMobile && <CloseButton onClick={() => router.push("/streams")} />}
 
       {/* 左側 - 直播影片 */}
       <div
@@ -197,7 +210,11 @@ export default function Stream({
           // streamUrl={`http://localhost:8000/live/${streamId}/index.m3u8`}
           streamUrl="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
         /> */}
-        {remoteStream && <VideoPlayer localStream={remoteStream} />}
+        {remoteStream ? (
+          <VideoPlayer localStream={remoteStream} />
+        ) : (
+          <div className="text-white">等待主播連線中...</div>
+        )}
       </div>
 
       {/* 右側 - 聊天室 */}
