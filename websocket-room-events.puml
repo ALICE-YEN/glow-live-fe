@@ -1,0 +1,46 @@
+@startuml websocket-room-events
+
+title WebSocket Room Events
+
+actor Host
+participant "FE\n主播端" as FE_H
+participant "WebSocket\nServer" as WS
+participant "FE\n觀眾端" as FE_V
+database DB
+
+== 主播 joinRoom ==
+FE_H -> WS: socket.emit("joinRoom", hostInfo, ack)
+WS -> WS: socket.join(room)
+WS -> DB: getStream(streamId, userId)
+DB --> WS: stream
+alt 主播首次進入時更新狀態為 live
+  WS -> WS: 更新 stream.status 為 live
+  WS -> DB: PATCH /streams/:streamId { status: "live" }
+end
+note right of WS
+若 stream.userId 為主播本人
+且 stream.status 為 "waiting"
+才會更新狀態為 live
+end note
+WS --> FE_H: ack() // 主播端 執行 sendOffer()
+
+== 觀眾 joinRoom ==
+FE_V -> WS: socket.emit("joinRoom", viewerInfo, ack)
+WS -> WS: socket.join(room)
+WS -> FE_H: socket.emit("new-viewer", viewerInfo)
+note right of FE_H: 主播端 監聽 "new-viewer"\n接收到後執行 sendOffer()
+WS --> FE_V: ack()
+
+== 觀眾離開 ==
+FE_V -> WS: socket.emit("leaveRoom")
+WS -> WS: socket.leave(room)
+
+== 主播結束直播 ==
+FE_H -> WS: socket.emit("endStream")
+WS -> WS: socket.to(room).emit("stream-ended")
+alt 結束直播時更新狀態為 ended
+  WS -> WS: 更新 stream.status 為 ended
+  WS -> DB: PATCH /streams/:streamId/end
+end
+
+@enduml

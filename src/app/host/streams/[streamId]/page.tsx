@@ -73,6 +73,10 @@ export default function HostStream({
 
   const handleEndStream = () => {
     endStream(); // 結束 WebRTC 連線
+    const socket = socketRef.current;
+    if (socket) {
+      socket.emit("leaveRoom", { streamId: Number(streamId) });
+    }
     router.push("/host/streams");
   };
 

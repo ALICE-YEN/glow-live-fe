@@ -21,7 +21,7 @@ export default function Streams() {
       <Header />
       <main className="mx-auto pt-28 sm:pt-40 px-10 sm:px-14 lg:px-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {streams.map((stream: StreamDetail) => (
+          {(streams ?? []).map((stream: StreamDetail) => (
             <Card
               key={stream.id}
               id={stream.id}

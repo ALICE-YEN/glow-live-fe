@@ -139,11 +139,10 @@ export default function Stream({
   });
 
   useEffect(() => {
-    if (!streamId) return;
-    if (!socketRef.current) return;
+    if (!streamId || !socketRef.current) return;
 
     const socket = socketRef.current;
-    // 發送 joinRoom 事件給後端
+
     socket.emit(
       "joinRoom",
       {
@@ -158,20 +157,28 @@ export default function Stream({
       }
     );
 
-    // 觀眾監聽 stream-ended
-    socket.on("stream-ended", () => {
-      console.log("直播已結束");
-      toast.info("直播已結束");
-      router.push("/streams");
-    });
-
     return () => {
-      // TODO: leaveRoom 判斷要更精準完整
-      // 通知後端使用者離開房間，釋放資源，更新在線人數等
-      socket.emit("leaveRoom", { streamId: Number(streamId) });
-      socket.off("stream-ended");
+      handleLeaveRoomSocket();
     };
   }, [streamId, socketRef]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleStreamEnded = () => {
+      toast.info("直播已結束");
+      handleLeaveRoomSocket();
+      router.push("/streams");
+    };
+
+    // 觀眾監聽 stream-ended
+    socket.on("stream-ended", handleStreamEnded);
+
+    return () => {
+      socket.off("stream-ended", handleStreamEnded);
+    };
+  }, [socketRef]);
 
   const handleSendMessage = async (message: string) => {
     await createChatMutation.mutateAsync({
@@ -188,6 +195,14 @@ export default function Stream({
     followUserMutation.mutate();
   };
 
+  const handleLeaveRoomSocket = () => {
+    const socket = socketRef.current;
+    if (socket && streamId) {
+      socket.emit("leaveRoom", { streamId: Number(streamId) });
+      socket.disconnect(); // 自動 off 掉所有監聽
+    }
+  };
+
   if (isLoading) return <div>載入中...</div>;
   if (error) return <div>發生錯誤：{(error as Error).message}</div>;
 
@@ -199,7 +214,14 @@ export default function Stream({
         onFollow={handleFollow}
       />
 
-      {isMobile && <CloseButton onClick={() => router.push("/streams")} />}
+      {isMobile && (
+        <CloseButton
+          onClick={() => {
+            handleLeaveRoomSocket();
+            router.push("/streams");
+          }}
+        />
+      )}
 
       {/* 左側 - 直播影片 */}
       <div
