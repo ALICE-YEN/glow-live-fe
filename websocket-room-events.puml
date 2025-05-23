@@ -22,7 +22,8 @@ note right of WS
 且 stream.status 為 "waiting"
 才會更新狀態為 live
 end note
-WS --> FE_H: ack() // 主播端 執行 sendOffer()
+WS --> FE_H: ack()
+note right of FE_H: 主播端 執行 sendOffer()
 
 == 觀眾 joinRoom ==
 FE_V -> WS: socket.emit("joinRoom", viewerInfo, ack)

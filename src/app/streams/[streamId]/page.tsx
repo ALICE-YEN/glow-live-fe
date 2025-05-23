@@ -22,7 +22,7 @@ import type {
   SendGiftBody,
   GetStreamResponse,
 } from "@/types/api";
-import type { GiftDetail } from "@/types/interfaces";
+import type { GiftDetail, ChatMessage } from "@/types/interfaces";
 import { DisplayMessageType, ChatMessageType } from "@/types/enum";
 import VideoPlayer from "@/app/components/VideoPlayer";
 import MessageList from "@/app/components/MessageList";
@@ -38,6 +38,7 @@ export default function Stream({
 }) {
   const { streamId } = use(params);
 
+  const [chats, setChats] = useState<ChatMessage[]>([]);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
   const isMobile = useIsMobile();
@@ -48,12 +49,14 @@ export default function Stream({
   const router = useRouter();
 
   const {
-    data: chats,
+    data: initialChats,
+    isSuccess: isInitialChatsSuccess, // 第一次成功拿到資料時為 true，refetch 後仍是 true
     // isLoading: chatsLoading,
     // error: chatsError,
-  } = useQuery({
+  } = useQuery<ChatMessage[]>({
     queryKey: ["chats", streamId],
     queryFn: () => getChats(streamId),
+    enabled: !!streamId,
     refetchOnWindowFocus: false, // 使用 WebSocket 來即時更新聊天訊息
   });
 
@@ -80,19 +83,19 @@ export default function Stream({
 
   const queryClient = useQueryClient();
 
-  const createChatMutation = useMutation({
-    mutationFn: (body: CreateChatBody) => {
-      return createChat(streamId, body);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["chats", streamId]);
-      toast.success("建立聊天記錄成功！");
-    },
-    onError: (error) => {
-      console.error("建立聊天記錄失敗：", error);
-      toast.error("建立聊天記錄失敗，請稍後重試");
-    },
-  });
+  // const createChatMutation = useMutation({
+  //   mutationFn: (body: CreateChatBody) => {
+  //     return createChat(streamId, body);
+  //   },
+  //   onSuccess: () => {
+  //     // queryClient.invalidateQueries(["chats", streamId]); // 應該用 socket 取得新聊天紀錄
+  //     toast.success("建立聊天記錄成功！");
+  //   },
+  //   onError: (error) => {
+  //     console.error("建立聊天記錄失敗：", error);
+  //     toast.error("建立聊天記錄失敗，請稍後重試");
+  //   },
+  // });
 
   const sendGiftMutation = useMutation({
     mutationFn: (gift: GiftDetail) => {
@@ -139,6 +142,12 @@ export default function Stream({
   });
 
   useEffect(() => {
+    if (isInitialChatsSuccess && initialChats) {
+      setChats(initialChats);
+    }
+  }, [isInitialChatsSuccess, initialChats]);
+
+  useEffect(() => {
     if (!streamId || !socketRef.current) return;
 
     const socket = socketRef.current;
@@ -180,11 +189,37 @@ export default function Stream({
     };
   }, [socketRef]);
 
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleNewMessage = (msg: ChatMessage) => {
+      console.log("newMessage", msg);
+      setChats((prev) => [...prev, msg]);
+    };
+    socket.on("newMessage", handleNewMessage);
+
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+    };
+  }, [socketRef]);
+
   const handleSendMessage = async (message: string) => {
-    await createChatMutation.mutateAsync({
+    // await createChatMutation.mutateAsync({
+    //   content: message,
+    //   type: ChatMessageType.Text,
+    // }); // ChatInput 目前只支援文字訊息
+
+    if (!socketRef.current) return;
+    const socket = socketRef.current;
+
+    socket.emit("sendMessage", {
+      streamId: Number(streamId),
+      userId: 1,
+      username: "Alice",
       content: message,
-      type: ChatMessageType.Text,
-    }); // ChatInput 目前只支援文字訊息
+      type: ChatMessageType.Text, // ChatInput 目前只支援文字訊息
+    });
   };
 
   const handleSendGift = (gift: GiftDetail) => {

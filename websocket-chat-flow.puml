@@ -1,0 +1,20 @@
+@startuml webSocket-chat-flow
+title WebSocket Chat Flow
+
+actor Client as "Client\n(觀眾端／主播端)"
+participant Server
+database "chat_messages\n(DB)" as DB
+participant RoomClients as "房間內所有 Clients\n(觀眾端／主播端)"
+
+== 發送聊天訊息 ==
+
+Client -> Server : socket.emit("sendMessage", message)
+
+Server -> DB : 儲存 message 至 chat_messages
+
+== 接收聊天訊息 ==
+
+Server -> RoomClients : socket.emit("newMessage", savedMessage)
+note right of Server : 廣播新訊息給所有房間內用戶（含自己）
+
+@enduml

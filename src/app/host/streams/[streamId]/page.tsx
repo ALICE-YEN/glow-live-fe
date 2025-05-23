@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useRef, use } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import XIcon from "@heroicons/react/24/outline/XMarkIcon";
@@ -10,8 +10,8 @@ import useCameraStream from "@/hooks/useCameraStream";
 import useHostWebRTC from "@/hooks/useHostWebRTC";
 import useIsMobile from "@/hooks/useIsMobile";
 import useSocket from "@/hooks/useSocket";
-import { getChats, createChat } from "@/services/api";
-import type { CreateChatBody } from "@/types/api";
+import { getChats } from "@/services/api";
+import type { ChatMessage } from "@/types/interfaces";
 import { DisplayMessageType, ChatMessageType } from "@/types/enum";
 import VideoPlayer from "@/app/components/VideoPlayer";
 import MessageList from "@/app/components/MessageList";
@@ -25,6 +25,7 @@ export default function HostStream({
 }) {
   const { streamId } = use(params);
 
+  const [chats, setChats] = useState<ChatMessage[]>([]);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
   const isMobile = useIsMobile();
@@ -39,36 +40,49 @@ export default function HostStream({
   const router = useRouter();
 
   const {
-    data: chats,
+    data: initialChats,
+    isSuccess: isInitialChatsSuccess, // 第一次成功拿到資料時為 true，refetch 後仍是 true
     // isLoading: chatsLoading,
     // error: chatsError,
-  } = useQuery({
+  } = useQuery<ChatMessage[]>({
     queryKey: ["chats", streamId],
-    queryFn: () => getChats(Number(streamId)),
+    queryFn: () => getChats(streamId),
+    enabled: !!streamId,
     refetchOnWindowFocus: false, // 使用 WebSocket 來即時更新聊天訊息
   });
 
-  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (isInitialChatsSuccess && initialChats) {
+      setChats(initialChats);
+    }
+  }, [isInitialChatsSuccess, initialChats]);
 
-  const createChatMutation = useMutation({
-    mutationFn: (body: CreateChatBody) => {
-      return createChat(Number(streamId), body);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["chats", streamId]);
-      toast.success("建立聊天記錄成功！");
-    },
-    onError: (error) => {
-      console.error("建立聊天記錄失敗：", error);
-      toast.error("建立聊天記錄失敗，請稍後重試");
-    },
-  });
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleNewMessage = (msg: ChatMessage) => {
+      console.log("newMessage", msg);
+      setChats((prev) => [...prev, msg]);
+    };
+    socket.on("newMessage", handleNewMessage);
+
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+    };
+  }, [socketRef]);
 
   const handleSendMessage = async (message: string) => {
-    await createChatMutation.mutateAsync({
+    if (!socketRef.current) return;
+    const socket = socketRef.current;
+
+    socket.emit("sendMessage", {
+      streamId: Number(streamId),
+      userId: 1,
+      username: "Alice",
       content: message,
-      type: ChatMessageType.Text,
-    }); // ChatInput 目前只支援文字訊息
+      type: ChatMessageType.Text, // ChatInput 目前只支援文字訊息
+    });
   };
 
   const handleEndStream = () => {

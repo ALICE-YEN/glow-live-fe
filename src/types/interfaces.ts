@@ -1,4 +1,4 @@
-import { StreamStatus } from "@/types/enum";
+import { StreamStatus, ChatMessageType } from "@/types/enum";
 
 export interface StreamDetail {
   id: number;
@@ -21,4 +21,15 @@ export interface GiftDetail {
   name: string;
   emoji: string;
   price: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  streamId: number;
+  userId: number;
+  content: string;
+  type: ChatMessageType;
+  createdAt: string;
+  updatedAt: string;
+  username?: string; // websocket 加此欄位，方便聊天室直接取用
 }
